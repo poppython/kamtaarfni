@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+
+html, body { min-height: 100%; }
+body {
+  font-family: var(--font-body), sans-serif;
+  color: #3B2A5C;
+  background:
+    radial-gradient(circle at 12% 8%, #FFE0EE 0, transparent 38%),
+    radial-gradient(circle at 92% 18%, #D9ECFF 0, transparent 40%),
+    radial-gradient(circle at 50% 100%, #E4FBF0 0, transparent 45%),
+    #F3EEFF;
+  background-attachment: fixed;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+@layer components {
+  .card { @apply rounded-[24px] bg-white p-5 shadow-soft; }
+  .input {
+    @apply w-full rounded-2xl border-2 border-transparent bg-lav px-4 py-3 text-lg font-bold text-ink outline-none transition-colors placeholder:font-normal placeholder:text-ink/40 focus:border-grape;
+  }
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-2xl px-6 py-4 font-title text-xl font-bold text-white;
+    background: var(--c);
+    box-shadow: 0 6px 0 var(--s), 0 14px 24px -10px var(--s);
+    transform: translateY(0);
+    transition: box-shadow 0.08s;
+  }
+  .btn:active { box-shadow: 0 2px 0 var(--s); }
+  .btn:disabled { @apply opacity-50; }
+  .btn-sm { @apply px-4 py-2 text-base; box-shadow: 0 4px 0 var(--s); }
+  .btn-pink  { --c: #FF7DAA; --s: #D95C89; }
+  .btn-mint  { --c: #3FCB93; --s: #27A272; }
+  .btn-sky   { --c: #5AB1F5; --s: #3C8CCB; }
+  .btn-grape { --c: #8B6CFF; --s: #6A4FD6; }
+  .btn-sun   { --c: #FFD86B; --s: #E0B43A; color: #3B2A5C; }
+  .btn-ghost { --c: #FFFFFF; --s: #DCD2F5; color: #3B2A5C; }
+}
+
+:focus-visible { outline: 3px solid #8B6CFF; outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
