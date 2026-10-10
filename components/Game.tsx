@@ -5,9 +5,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import Mascot, { Mood } from "./Mascot";
 import BigButton from "./BigButton";
 import Screen from "./Screen";
-import { T } from "@/lib/phrases";
+import StickerBurst from "./StickerBurst";
+import PetSays from "./PetSays";
+import { PET_LINES, T } from "@/lib/phrases";
 import { audio } from "@/lib/audio";
-import { finishQuiz, getQuizPublic, joinQuiz, submitAnswer, toClipInfo } from "@/lib/api";
+import { finishQuiz, getQuizPublic, joinQuiz, submitAnswer, toClipInfo, toStickerUrl } from "@/lib/api";
 import { clearPlay, getPlay, savePlay, SavedPlay } from "@/lib/local";
 import type { QuizPublic } from "@/lib/types";
 
@@ -31,7 +33,9 @@ export default function Game({ slug }: { slug: string }) {
   const [moodKey, setMoodKey] = useState(0);
   const [talking, setTalking] = useState(false);
   const [caption, setCaption] = useState(false);
+  const [burst, setBurst] = useState(0);
   const alive = useRef(true);
+  const stickerUrls = (quiz?.stickers ?? []).map(toStickerUrl); // older DBs may not have stickers yet
 
   useEffect(() => {
     alive.current = true;
@@ -71,6 +75,7 @@ export default function Game({ slug }: { slug: string }) {
     audio.unlock(); // unlock audio on the first tap
     audio.sfx("tap");
     audio.preload(quiz.clips.map(toClipInfo), quiz.use_creator_voice); // preload ALL clips now
+    stickerUrls.forEach((u) => { const im = new Image(); im.src = u; }); // …and the sticker photos
     try {
       const p = await joinQuiz(slug, name.trim(), avatar);
       savePlay(slug, { participant_id: p.id, name: name.trim(), avatar, finished: false });
@@ -89,7 +94,7 @@ export default function Game({ slug }: { slug: string }) {
       setFb({ ok: r.is_correct, correct: r.correct_index });
       setMoodKey((k) => k + 1);
       if (r.is_correct) { setMood("happy"); audio.sfx("correct"); react("correct"); }
-      else { setMood("wrong"); try { navigator.vibrate?.([120, 60, 160]); } catch {} audio.sfx("wrong"); react("wrong", q.id); }
+      else { setMood("wrong"); try { navigator.vibrate?.([120, 60, 160]); } catch {} audio.sfx("wrong"); react("wrong", q.id); setBurst((b) => b + 1); }
     } catch { setPicked(null); setError(T.errorGeneric); }
     setBusy(false);
   };
@@ -133,8 +138,8 @@ export default function Game({ slug }: { slug: string }) {
       <AnimatePresence mode="wait">
         {phase === "landing" && (
           <motion.div key="landing" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-5 text-center">
-            <div className="flex justify-center"><Mascot mood="idle" size={160} /></div>
-            <h1 className="font-title text-4xl font-extrabold leading-tight text-grape">{T.landing.challenge(quiz.creator_name)}</h1>
+            <h1 className="title-pop text-4xl leading-tight">{T.landing.challenge(quiz.creator_name)}</h1>
+            <PetSays kind="puppy" mood="happy" lines={PET_LINES.landing} size={130} className="w-full" />
             <p className="text-ink/70">{quiz.title} — {T.landing.sub}</p>
 
             {prev?.finished ? (
@@ -184,12 +189,12 @@ export default function Game({ slug }: { slug: string }) {
                 const reveal = fb !== null;
                 const isCorrect = reveal && fb!.correct === i;
                 const isWrongPick = reveal && picked === i && !fb!.ok;
-                const cls = isCorrect ? "bg-mint text-white ring-4 ring-mint/40" : isWrongPick ? "bg-[#FF6B8B] text-white" : reveal ? "bg-white/60 text-ink/40" : "bg-white text-ink";
+                const cls = isCorrect ? "bg-mint text-white ring-4 ring-mint/40 shadow-[0_5px_0_#27A272]" : isWrongPick ? "bg-[#FF6B8B] text-white shadow-[0_5px_0_#D9456A]" : reveal ? "bg-white/60 text-ink/40" : "bg-white text-ink shadow-[0_5px_0_rgba(59,42,92,.15)]";
                 return (
                   <motion.button key={i} onClick={() => answer(i)} disabled={picked !== null}
                     whileTap={picked === null ? { scale: 0.96 } : undefined}
                     animate={isWrongPick ? { x: [0, -8, 8, -8, 0] } : isCorrect ? { scale: [1, 1.04, 1] } : {}}
-                    className={`flex w-full items-center justify-between gap-3 rounded-[22px] px-5 py-4 text-right font-title text-xl font-bold shadow-soft transition-colors ${cls}`}>
+                    className={`flex w-full items-center justify-between gap-3 rounded-[22px] px-5 py-4 text-right font-title text-xl font-bold transition-colors ${cls}`}>
                     <span>{o}</span>
                     {isCorrect && <span>✅</span>}{isWrongPick && <span>❌</span>}
                   </motion.button>
@@ -227,6 +232,10 @@ export default function Game({ slug }: { slug: string }) {
             </motion.div>
             <p className="mx-auto max-w-xs font-title text-2xl font-bold leading-snug">{T.result.message(result.total ? (result.score / result.total) * 100 : 0)}</p>
             <div className="mx-auto inline-block rounded-full bg-white px-5 py-2 text-lg font-bold shadow-soft">{avatar} {T.result.rank(result.rank)}</div>
+            {(() => {
+              const high = result.total ? (result.score / result.total) * 100 >= 50 : false;
+              return <PetSays kind={high ? "puppy" : "kitten"} mood={high ? "happy" : "sad"} lines={high ? PET_LINES.result_high : PET_LINES.result_low} size={115} className="w-full" />;
+            })()}
             <div className="space-y-3 pt-2">
               <BigButton href={`/q/${slug}/leaderboard`} color="sky">{T.result.leaderboard}</BigButton>
               <BigButton href="/create" color="pink">{T.result.makeYours}</BigButton>
@@ -236,6 +245,7 @@ export default function Game({ slug }: { slug: string }) {
         )}
       </AnimatePresence>
 
+      <StickerBurst trigger={burst} images={stickerUrls} />
       {error && <p role="alert" className="mt-4 rounded-2xl bg-pink/25 p-3 text-center font-bold">{error}</p>}
       <Link href="/" className="sr-only">{T.backHome}</Link>
     </Screen>

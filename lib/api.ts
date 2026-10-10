@@ -1,5 +1,5 @@
-import { supabase, clipUrl } from "./supabase";
-import type { ClipInfo, ClipRow, CreatorView, Leaderboard, QuizPublic, VoiceKind } from "./types";
+import { supabase, clipUrl, stickerUrl } from "./supabase";
+import type { ClipInfo, ClipRow, CreatorView, Leaderboard, QuizPublic, StickerRow, VoiceKind } from "./types";
 
 async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.rpc(fn, args);
@@ -47,6 +47,24 @@ export async function uploadClip(p: {
 export async function deleteClip(quizId: string, token: string, clipId: string): Promise<void> {
   const path = await rpc<string>("delete_voice_clip", { p_clip_id: clipId, p_creator_token: token });
   await supabase.functions.invoke("voice-upload", { body: { action: "remove", quiz_id: quizId, creator_token: token, path } });
+}
+
+export const toStickerUrl = (s: StickerRow) => stickerUrl(s.storage_path);
+
+/** Upload one sticker photo: Edge Function (token check) → signed upload → register via RPC. */
+export async function uploadSticker(p: { quizId: string; token: string; blob: Blob; mime: string }): Promise<void> {
+  const { data, error } = await supabase.functions.invoke("voice-upload", {
+    body: { action: "sign_sticker", quiz_id: p.quizId, creator_token: p.token, mime_type: p.mime },
+  });
+  if (error || !data?.path) throw new Error(error?.message ?? "sign failed");
+  const up = await supabase.storage.from("stickers").uploadToSignedUrl(data.path, data.token, p.blob, { contentType: p.mime });
+  if (up.error) throw new Error(up.error.message);
+  await rpc("add_sticker", { p_quiz_id: p.quizId, p_creator_token: p.token, p_mime_type: p.mime, p_storage_path: data.path });
+}
+
+export async function deleteSticker(quizId: string, token: string, stickerId: string): Promise<void> {
+  const path = await rpc<string>("delete_sticker", { p_sticker_id: stickerId, p_creator_token: token });
+  await supabase.functions.invoke("voice-upload", { body: { action: "remove_sticker", quiz_id: quizId, creator_token: token, path } });
 }
 
 /** Realtime: the DB broadcasts "finished" on topic lb:<slug>. Returns an unsubscribe fn. */

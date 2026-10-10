@@ -1,14 +1,14 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
-import Mascot from "@/components/Mascot";
+import PetSays from "@/components/PetSays";
 import BigButton from "@/components/BigButton";
 import Screen from "@/components/Screen";
-import { T } from "@/lib/phrases";
+import { PET_LINES, T } from "@/lib/phrases";
 import { getMyQuizzes, MyQuiz } from "@/lib/local";
 
-export default function SharePage() {
+function Share() {
   const { slug } = useParams<{ slug: string }>();
   const sp = useSearchParams();
   const [quiz, setQuiz] = useState<MyQuiz | null>(null);
@@ -33,13 +33,11 @@ export default function SharePage() {
   };
   const nativeShare = () => navigator.share({ title: T.appName, text: T.share.shareText((quiz?.creator_name ?? "")), url: link }).catch(() => {});
 
-  if (!origin) return null;
-
   return (
     <Screen>
       <div className="flex flex-col items-center text-center">
-        <Mascot mood="dance" size={140} />
-        <h1 className="font-title text-3xl font-bold">{T.share.heading}</h1>
+        <h1 className="title-pop text-4xl">{T.share.heading}</h1>
+        <PetSays kind="kitten" mood="happy" lines={PET_LINES.share} size={120} className="mt-2 w-full" />
       </div>
 
       {sp.get("voicefail") && <p className="mt-4 rounded-2xl bg-sun/50 p-3 text-center text-sm font-bold">{T.create.voiceUploadFailed}</p>}
@@ -59,7 +57,7 @@ export default function SharePage() {
 
         <div className="flex flex-col items-center gap-2 pt-2">
           <div className="text-sm text-ink/70">{T.share.qr}</div>
-          <div className="rounded-2xl bg-white p-3 ring-4 ring-lav"><QRCodeSVG value={link} size={168} fgColor="#3B2A5C" /></div>
+          {origin && <div className="rounded-2xl bg-white p-3 ring-4 ring-lav"><QRCodeSVG value={link} size={168} fgColor="#3B2A5C" /></div>}
         </div>
       </div>
 
@@ -76,4 +74,9 @@ export default function SharePage() {
       <div className="mt-5"><BigButton color="ghost" href={`/q/${slug}/leaderboard`}>🏆 {T.share.openLeaderboard}</BigButton></div>
     </Screen>
   );
+}
+
+
+export default function SharePage() {
+  return <Suspense fallback={null}><Share /></Suspense>;
 }

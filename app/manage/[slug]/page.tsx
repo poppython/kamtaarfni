@@ -6,9 +6,10 @@ import Mascot, { Mood } from "@/components/Mascot";
 import BigButton from "@/components/BigButton";
 import Screen from "@/components/Screen";
 import VoiceSlot from "@/components/VoiceSlot";
+import StickerPicker from "@/components/StickerPicker";
 import { T } from "@/lib/phrases";
-import { clipUrl } from "@/lib/supabase";
-import { deleteClip, getCreatorView, setUseCreatorVoice, subscribeLeaderboard, uploadClip } from "@/lib/api";
+import { clipUrl, stickerUrl } from "@/lib/supabase";
+import { deleteClip, deleteSticker, getCreatorView, setUseCreatorVoice, subscribeLeaderboard, uploadClip, uploadSticker } from "@/lib/api";
 import { getMyQuizzes, getToken, saveMyQuiz } from "@/lib/local";
 import type { CreatorView, RecResult, VoiceKind } from "@/lib/types";
 
@@ -65,7 +66,7 @@ function Manage() {
     <Screen>
       <div className="flex flex-col items-center text-center">
         <Mascot mood={mood} size={110} />
-        <h1 className="font-title text-3xl font-bold">{T.manage.heading}</h1>
+        <h1 className="title-pop text-4xl">{T.manage.heading}</h1>
         <p className="text-ink/70">{view.quiz.title}</p>
       </div>
 
@@ -124,6 +125,10 @@ function Manage() {
               <motion.span layout className="absolute top-1 h-7 w-7 rounded-full bg-white shadow" style={{ [view.quiz.use_creator_voice ? "right" : "left"]: 4 }} />
             </button>
           </div>
+
+          <StickerPicker items={(view.stickers ?? []).map((s) => ({ id: s.id, url: stickerUrl(s.storage_path) }))}
+            onAdd={async (s) => { await uploadSticker({ quizId, token, blob: s.blob, mime: s.mime }); await load(token); }}
+            onDelete={async (id) => { await deleteSticker(quizId, token, id); await load(token); }} />
 
           {T.voice.slots.map((s) => (
             <VoiceSlot key={s.kind} title={s.title} hints={s.hints} max={3} items={items(s.kind, null)}

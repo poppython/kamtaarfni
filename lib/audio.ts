@@ -31,6 +31,7 @@ class AudioManager {
   private lastPlayed: Partial<Record<string, string>> = {};
   private current: { stop: () => void } | null = null;
   private ducked = false;
+  private ownCtx: AudioContext | null = null;
 
   init() {
     if (typeof window === "undefined") return;
@@ -80,6 +81,8 @@ class AudioManager {
       if (this.defaultHowls[l.file]) return;
       const h = new Howl({ src: [`/sounds/voices/${l.file}.mp3`], preload: true });
       h.on("loaderror", () => this.failed.add("voice:" + l.file));
+      // an empty / silent placeholder file counts as missing → text-to-speech fallback
+      h.once("load", () => { if (h.duration() < 0.25) this.failed.add("voice:" + l.file); });
       this.defaultHowls[l.file] = h;
     });
   }
@@ -89,6 +92,59 @@ class AudioManager {
     if (!h || this.failed.has("sfx:" + name)) return;
     h.volume(SFX_VOLUME[name] * (this.ducked ? DUCK : 1));
     h.play();
+  }
+
+  private getCtx(): AudioContext | null {
+    try {
+      const c = (Howler.ctx as AudioContext | undefined) ?? this.ownCtx;
+      if (c) return c;
+      const AC = window.AudioContext || (window as any).webkitAudioContext;
+      this.ownCtx = new AC();
+      return this.ownCtx;
+    } catch { return null; }
+  }
+
+  /** "beep beep beep beep" that goes with the pop-up stickers (no audio file needed). */
+  beep(count = 4) {
+    if (this.muted) return;
+    const ctx = this.getCtx();
+    if (!ctx) return;
+    try {
+      ctx.resume?.();
+      const vol = 0.12 * (this.ducked ? DUCK : 1);
+      for (let i = 0; i < count; i++) {
+        const t0 = ctx.currentTime + 0.05 + i * 0.17;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = "square";
+        o.frequency.value = i % 2 ? 740 : 988;
+        g.gain.setValueAtTime(0, t0);
+        g.gain.linearRampToValueAtTime(vol, t0 + 0.01);
+        g.gain.setValueAtTime(vol, t0 + 0.08);
+        g.gain.linearRampToValueAtTime(0, t0 + 0.1);
+        o.connect(g).connect(ctx.destination);
+        o.start(t0);
+        o.stop(t0 + 0.12);
+      }
+    } catch {}
+  }
+
+  /** Make a pet "say" a line out loud (Arabic text-to-speech). */
+  say(text: string, onStart?: () => void, onEnd?: () => void) {
+    if (this.muted) { onEnd?.(); return; }
+    try {
+      const synth = window.speechSynthesis;
+      if (!synth) { onEnd?.(); return; }
+      synth.cancel();
+      const u = new SpeechSynthesisUtterance(text.replace(/[\p{Extended_Pictographic}\uFE0F]/gu, "").trim());
+      u.lang = SPEECH_LANG;
+      u.rate = 1.05;
+      u.pitch = 1.35;
+      u.onstart = () => onStart?.();
+      u.onend = () => onEnd?.();
+      u.onerror = () => onEnd?.();
+      synth.speak(u);
+    } catch { onEnd?.(); }
   }
 
   private setDuck(on: boolean) {

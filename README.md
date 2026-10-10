@@ -8,7 +8,7 @@ The creator writes their own questions, records their own voice reactions, share
 
 ### 1. Supabase project
 1. Create a project at https://supabase.com.
-2. **SQL Editor → New query →** paste `supabase/migrations/001_init.sql` → **Run**.
+2. **SQL Editor → New query →** paste `supabase/migrations/001_init.sql` → **Run**. Then do the same with `supabase/migrations/002_stickers.sql` (photo stickers).
    This creates the tables, RLS (on, with no policies → no direct client access), all RPC functions, and the `voice-clips` storage bucket (public read, 300 KB max, `audio/webm` + `audio/mp4` only).
 3. Check **Storage**: bucket `voice-clips` should exist. (If your plan blocks SQL bucket creation, create it manually with the same settings.)
 4. **Realtime:** nothing to enable. The leaderboard uses Realtime *broadcast* sent from `finish_quiz()`, so tables stay fully private. (A 20 s polling fallback is built in.)
@@ -18,7 +18,7 @@ The creator writes their own questions, records their own voice reactions, share
 npm i -g supabase
 supabase login
 supabase link --project-ref YOUR_PROJECT_REF
-supabase functions deploy voice-upload
+supabase functions deploy voice-upload   # re-run this after updating: it now also handles sticker photos
 ```
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically. Friends can never upload: the function only signs an upload URL if the request carries a valid `creator_token`.
 
@@ -77,3 +77,31 @@ lib/            phrases.ts, audio.ts, useRecorder.ts, api.ts, supabase.ts, local
 supabase/       migrations/001_init.sql, functions/voice-upload/index.ts
 public/         manifest.json, sw.js, icons, sounds/
 ```
+
+## v2 — photo stickers, talking pets, new look
+
+**Photo stickers (the viral part 📸)**
+- The creator adds up to 5 photos (gallery or camera) in the "صوتك وصورك" step, or later from the manage link. Photos are cropped square, shrunk to 256 px and compressed on the phone (≈ 15–40 KB).
+- When a friend answers wrong, the photos fly in from the **top-left or top-right corner** at random, land in random spots, **flash**, and go "beep beep beep beep" (generated with WebAudio, no file needed). With no photos, funny emojis (😹🤦🙈…) pop up instead.
+- The beeps follow the mute button and drop to 30 % while the creator's voice clip plays.
+- Backend: `002_stickers.sql` adds the `stickers` table, the `stickers` bucket (public read, 150 KB, webp/jpeg/png), and the RPCs `add_sticker` / `delete_sticker`; `get_quiz_public` and `get_creator_view` now return stickers. Uploads still go only through the Edge Function (token check + signed URL).
+- The app still works if you haven't run `002` yet (no stickers, emoji fallback), but uploading photos needs it.
+
+**Talking pets 🐶🐱**
+- New cartoon puppy and kitten (`components/Pet.tsx`) with moods (idle / happy / sad), wagging tail, blinking and a talking mouth. The home screen has puppy + mascot + kitten taking turns to talk; the friend landing, result, share and leaderboard screens have a pet with a speech bubble.
+- **Tap a pet to hear it speak** the line in Arabic (browser text-to-speech).
+- All the lines ("أنت صرت صديقي!", "أنت توأم روحي!"…) are in `PET_LINES` inside `lib/phrases.ts`.
+
+**Look**
+- Paw-print background, sticker-style cards, glossy chunky buttons, candy-colored answer buttons, outlined titles.
+
+**Fixes**
+- Removed the 8 empty placeholder files in `public/sounds/voices/` (they were silent, which blocked the spoken fallback). `audio.ts` now also treats any tiny/silent voice file as missing. Add real recordings with the names in `public/sounds/SOUNDS.md` whenever you like.
+- `.env.example` is back to placeholders (keep your real keys only in `.env.local`).
+- Share page wrapped in `Suspense` again (needed for `next build`).
+
+## Updating from an older copy (important)
+1. Unzip so the files land **directly inside your existing project folder** (same folder as `package.json`), overwriting. The zip has no wrapper folder.
+2. Delete the `.next` folder, then restart: `npm run dev`.
+3. Hard-refresh the browser (on a phone: close the tab and reopen). If you ever installed the app/PWA, clear site data once so the old service worker goes away.
+4. You should see **"v2 🐾"** at the bottom of the home screen and the puppy + cat + mascot at the top. In *Create* there are now 5 steps: عنك · صوتك · **صورك** · أسئلتك · نشر.

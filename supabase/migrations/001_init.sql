@@ -271,7 +271,7 @@ create or replace function public.add_voice_clip(
   p_quiz_id uuid, p_creator_token uuid, p_kind text, p_question_id uuid,
   p_mime_type text, p_duration_ms int, p_storage_path text)
 returns json language plpgsql security definer set search_path = public, storage as $$
-declare c public.voice_clips; n int;
+declare c public.voice_clips; n int; v_max int;
 begin
   perform public._assert_creator(p_quiz_id, p_creator_token);
   if p_kind not in ('wrong','correct','result_low','result_high') then raise exception 'bad kind'; end if;
@@ -287,9 +287,12 @@ begin
   if not exists (select 1 from storage.objects where bucket_id = 'voice-clips' and name = p_storage_path) then
     raise exception 'file not uploaded';
   end if;
+  -- 3 clips per generic slot, 1 per question
+  if p_question_id is null then v_max := 3; else v_max := 1; end if;
+
   select count(*) into n from public.voice_clips
    where quiz_id = p_quiz_id and kind = p_kind and question_id is not distinct from p_question_id;
-  if n >= case when p_question_id is null then 3 else 1 end then raise exception 'slot full'; end if;
+  if n >= v_max then raise exception 'slot full'; end if;
 
   insert into public.voice_clips (quiz_id, kind, question_id, storage_path, mime_type, duration_ms)
   values (p_quiz_id, p_kind, p_question_id, p_storage_path, p_mime_type, p_duration_ms)

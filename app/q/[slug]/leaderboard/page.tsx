@@ -4,9 +4,10 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import Mascot from "@/components/Mascot";
+import PetSays from "@/components/PetSays";
 import BigButton from "@/components/BigButton";
 import Screen from "@/components/Screen";
-import { T } from "@/lib/phrases";
+import { PET_LINES, T } from "@/lib/phrases";
 import { getLeaderboard, subscribeLeaderboard } from "@/lib/api";
 import { getToken } from "@/lib/local";
 import type { Leaderboard } from "@/lib/types";
@@ -39,8 +40,8 @@ export default function LeaderboardPage() {
   return (
     <Screen>
       <div className="flex flex-col items-center text-center">
-        <Mascot mood="dance" size={120} />
-        <h1 className="font-title text-3xl font-bold">{T.leaderboard.heading}</h1>
+        <h1 className="title-pop text-4xl">{T.leaderboard.heading}</h1>
+        <PetSays kind="puppy" variant="b" mood="happy" lines={PET_LINES.leaderboard} size={110} className="w-full" />
         {data && <p className="text-ink/70">{data.quiz.title} • {data.quiz.creator_name}</p>}
         <span className="mt-2 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-bold">
           <motion.span className="h-2.5 w-2.5 rounded-full bg-[#FF3D5A]" animate={{ opacity: [1, 0.2, 1] }} transition={{ repeat: Infinity, duration: 1.4 }} /> {T.leaderboard.live}

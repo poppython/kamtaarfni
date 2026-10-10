@@ -1,6 +1,6 @@
 // Minimal service worker: makes the app installable and caches static assets + sounds.
 // Supabase/API traffic is never cached.
-const CACHE = "kam-taarefni-v1";
+const CACHE = "kam-taarefni-v2";
 
 self.addEventListener("install", (e) => { self.skipWaiting(); });
 self.addEventListener("activate", (e) => {

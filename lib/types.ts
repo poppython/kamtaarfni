@@ -18,6 +18,9 @@ export interface ClipInfo {
   mime_type: string;
 }
 
+export interface StickerRow { id: string; storage_path: string; mime_type: "image/webp" | "image/jpeg" | "image/png" }
+export interface StickerDraft { blob: Blob; mime: "image/webp" | "image/jpeg"; url: string }
+
 export interface PublicQuestion { id: string; position: number; text: string; options: string[] }
 export interface QuizPublic {
   id: string;
@@ -27,6 +30,7 @@ export interface QuizPublic {
   use_creator_voice: boolean;
   questions: PublicQuestion[];
   clips: ClipRow[];
+  stickers: StickerRow[];
 }
 
 export interface LeaderRow {
@@ -44,6 +48,7 @@ export interface CreatorView {
   questions: CreatorQuestion[];
   participants: CreatorParticipant[];
   clips: ClipRow[];
+  stickers: StickerRow[];
 }
 
 export interface RecResult { blob: Blob; mime: string; durationMs: number; url: string }

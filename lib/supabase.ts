@@ -11,4 +11,5 @@ export const supabase: SupabaseClient = createClient(url || "http://localhost:54
   realtime: { params: { eventsPerSecond: 5 } },
 });
 
+export const stickerUrl = (path: string) => `${url}/storage/v1/object/public/stickers/${path}`;
 export const clipUrl = (path: string) => `${url}/storage/v1/object/public/voice-clips/${path}`;

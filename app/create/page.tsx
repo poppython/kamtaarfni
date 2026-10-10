@@ -6,11 +6,12 @@ import Mascot, { Mood } from "@/components/Mascot";
 import BigButton from "@/components/BigButton";
 import Screen from "@/components/Screen";
 import VoiceSlot from "@/components/VoiceSlot";
+import StickerPicker from "@/components/StickerPicker";
 import { T } from "@/lib/phrases";
 import { audio } from "@/lib/audio";
-import { createQuiz, uploadClip } from "@/lib/api";
+import { createQuiz, uploadClip, uploadSticker } from "@/lib/api";
 import { saveMyQuiz } from "@/lib/local";
-import type { ClipInfo, RecResult, VoiceKind } from "@/lib/types";
+import type { ClipInfo, RecResult, StickerDraft, VoiceKind } from "@/lib/types";
 
 type VDraft = RecResult & { id: string };
 type QDraft = { uid: string; text: string; options: string[]; correct: number | null; voice: VDraft | null; voiceOpen: boolean };
@@ -25,6 +26,7 @@ export default function CreatePage() {
   const [title, setTitle] = useState("");
   const [voices, setVoices] = useState<Record<VoiceKind, VDraft[]>>({ wrong: [], correct: [], result_low: [], result_high: [] });
   const [qs, setQs] = useState<QDraft[]>([newQ()]);
+  const [stickers, setStickers] = useState<(StickerDraft & { id: string })[]>([]);
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -46,7 +48,7 @@ export default function CreatePage() {
       const q = qs[i];
       if (!q.text.trim() || q.options.some((o) => !o.trim()) || q.correct === null) return setError(T.create.errQuestionIncomplete(i + 1));
     }
-    go(3);
+    go(4);
   };
 
   // ---- questions helpers ----
@@ -92,6 +94,10 @@ export default function CreatePage() {
           await uploadClip({ quizId: res.id, token: res.creator_token, kind: j.kind, questionId: j.questionId, blob: j.d.blob, mime: j.d.mime, durationMs: j.d.durationMs });
         } catch { failed++; } // never block publishing
       }
+      for (const s of stickers) {
+        setProgress(T.create.uploadingVoices);
+        try { await uploadSticker({ quizId: res.id, token: res.creator_token, blob: s.blob, mime: s.mime }); } catch { failed++; }
+      }
       router.push(`/share/${res.slug}${failed ? "?voicefail=1" : ""}`);
     } catch {
       setError(T.errorGeneric); setBusy(false);
@@ -107,7 +113,7 @@ export default function CreatePage() {
       {/* progress dots */}
       <div className="mb-4 flex items-center justify-center gap-2">
         {T.create.stepLabels.map((l, i) => (
-          <div key={l} className={`rounded-full px-3 py-1 text-sm font-bold transition-colors ${i === step ? "bg-grape text-white" : i < step ? "bg-mint/70" : "bg-white/80 text-ink/50"}`}>{l}</div>
+          <div key={l} className={`rounded-full px-2.5 py-1 text-xs font-bold transition-colors ${i === step ? "bg-grape text-white" : i < step ? "bg-mint/70" : "bg-white/80 text-ink/50"}`}>{l}</div>
         ))}
       </div>
 
@@ -116,7 +122,7 @@ export default function CreatePage() {
           {step === 0 && (
             <div className="space-y-4">
               <div className="flex justify-center"><Mascot size={130} /></div>
-              <h1 className="text-center font-title text-3xl font-bold">{T.create.detailsHeading}</h1>
+              <h1 className="title-pop text-center text-3xl">{T.create.detailsHeading}</h1>
               <div className="card space-y-4">
                 <label className="block"><span className="mb-1 block font-bold">{T.create.yourName}</span>
                   <input className="input" maxLength={40} value={name} onChange={(e) => setName(e.target.value)} placeholder={T.create.yourNamePh} /></label>
@@ -130,7 +136,7 @@ export default function CreatePage() {
           {step === 1 && (
             <div className="space-y-4">
               <div className="flex justify-center"><Mascot mood={mood} talking={talking} size={130} /></div>
-              <h1 className="text-center font-title text-3xl font-bold">{T.voice.heading}</h1>
+              <h1 className="title-pop text-center text-3xl">{T.voice.heading}</h1>
               <p className="text-center text-ink/70">{T.voice.intro}</p>
               {T.voice.slots.map((s) => (
                 <VoiceSlot key={s.kind} title={s.title} hints={s.hints} max={3} items={voices[s.kind].map((d) => ({ id: d.id, url: d.url, durationMs: d.durationMs }))}
@@ -148,7 +154,20 @@ export default function CreatePage() {
 
           {step === 2 && (
             <div className="space-y-4">
-              <h1 className="text-center font-title text-3xl font-bold">{T.create.questionsHeading}</h1>
+              <div className="flex justify-center"><Mascot mood="happy" size={130} /></div>
+              <h1 className="title-pop text-center text-3xl">{T.stickers.heading}</h1>
+              <StickerPicker items={stickers.map((s) => ({ id: s.id, url: s.url }))}
+                onAdd={(s) => setStickers((l) => [...l, { ...s, id: uid() }])} onDelete={(id) => setStickers((l) => l.filter((x) => x.id !== id))} />
+              <div className="flex gap-3">
+                <BigButton color="ghost" onClick={() => go(1)} full={false} className="flex-1">{T.create.back}</BigButton>
+                <BigButton color="grape" onClick={() => go(3)} full={false} className="flex-[2]">{stickers.length ? T.create.next : T.create.skip}</BigButton>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-4">
+              <h1 className="title-pop text-center text-3xl">{T.create.questionsHeading}</h1>
               <p className="text-center text-ink/70">{T.create.questionsHint}</p>
               <p className="text-center text-sm font-bold text-grape">{T.create.tapCorrect}</p>
 
@@ -185,23 +204,23 @@ export default function CreatePage() {
               {qs.length < 30 ? <BigButton color="sky" onClick={() => setQs((l) => [...l, newQ()])}>{T.create.addQuestion}</BigButton>
                 : <p className="text-center font-bold">{T.create.maxQuestions}</p>}
               <div className="flex gap-3">
-                <BigButton color="ghost" onClick={() => go(1)} full={false} className="flex-1">{T.create.back}</BigButton>
+                <BigButton color="ghost" onClick={() => go(2)} full={false} className="flex-1">{T.create.back}</BigButton>
                 <BigButton color="grape" onClick={toPublish} full={false} className="flex-[2]">{T.create.next}</BigButton>
               </div>
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="space-y-5 text-center">
               <div className="flex justify-center"><Mascot mood="happy" size={150} /></div>
               <h1 className="font-title text-3xl font-bold">{T.create.publishHeading}</h1>
               <div className="card">
                 <div className="font-title text-2xl font-bold">{title}</div>
-                <div className="mt-1 text-ink/70">{T.create.publishSummary(qs.length, totalClips)}</div>
+                <div className="mt-1 text-ink/70">{T.create.publishSummary(qs.length, totalClips, stickers.length)}</div>
               </div>
               {progress && busy && <p className="font-bold text-grape">{progress}</p>}
               <BigButton color="pink" onClick={publish} disabled={busy}>{busy ? T.create.publishing : `${T.create.publish} 🚀`}</BigButton>
-              {!busy && <BigButton color="ghost" onClick={() => go(2)}>{T.create.back}</BigButton>}
+              {!busy && <BigButton color="ghost" onClick={() => go(3)}>{T.create.back}</BigButton>}
             </div>
           )}
         </motion.div>

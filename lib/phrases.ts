@@ -23,7 +23,7 @@ export const T = {
   },
 
   create: {
-    stepLabels: ["عنك", "صوتك", "أسئلتك", "نشر"],
+    stepLabels: ["عنك", "صوتك", "صورك", "أسئلتك", "نشر"],
     yourName: "اسمك",
     yourNamePh: "مثلاً: سارة",
     quizTitle: "عنوان الاختبار",
@@ -46,9 +46,9 @@ export const T = {
     publish: "نشر الاختبار",
     publishing: "جاري النشر...",
     publishHeading: "جاهز للنشر؟ 🚀",
-    publishSummary: (q: number, clips: number) => `${q} سؤال • ${clips} تسجيل صوتي`,
+    publishSummary: (q: number, clips: number, stickers: number) => `${q} سؤال • ${clips} تسجيل صوتي • ${stickers} صورة`,
     uploadingVoices: "جاري رفع تسجيلاتك...",
-    voiceUploadFailed: "بعض التسجيلات ما انرفعت. تقدر تعيدها من صفحة الإدارة.",
+    voiceUploadFailed: "بعض التسجيلات أو الصور ما انرفعت. تقدر تعيدها من صفحة الإدارة.",
     errNeedName: "اكتب اسمك واسم الاختبار",
     errNeedQuestions: "أضف سؤال واحد على الأقل",
     errQuestionIncomplete: (n: number) => `السؤال رقم ${n} ناقص: اكتب النص والخيارات وحدد الإجابة الصحيحة`,
@@ -94,6 +94,19 @@ export const T = {
     ],
     perQuestion: "🎤 صوت خاص",
     perQuestionTitle: "صوت خاص لهالسؤال (لما يغلط فيه)",
+  },
+
+  stickers: {
+    heading: "صورك المضحكة 📸",
+    intro: "أضف صورة لك (من المعرض أو الكاميرا). لما صديقك يغلط، رح تطلع صورتك فجأة من فوق وتومض وتصفّر بيب بيب بيب! 😂",
+    add: "📷 أضف صورة",
+    working: "جاري تجهيز الصورة...",
+    test: "جرب كيف ستظهر لصديقك 😈",
+    full: (n: number) => `وصلت للحد الأقصى (${n} صور)`,
+    notImage: "اختر ملف صورة 🖼️",
+    failed: "ما قدرنا نجهّز الصورة. جرّب صورة ثانية.",
+    delete: "حذف",
+    noneNote: "بدون صور: رح تظهر إيموجي مضحكة بدالها 🙈",
   },
 
   share: {
@@ -163,7 +176,7 @@ export const T = {
   manage: {
     heading: "إدارة الاختبار 🔒",
     tabParticipants: "المشاركين",
-    tabVoices: "تسجيلاتي",
+    tabVoices: "تسجيلاتي وصوري",
     noParticipants: "لسا ما حدا لعب. شارك الرابط! 📣",
     answersOf: (n: string) => `إجابات ${n}`,
     correctAnswer: "الصحيح:",
@@ -177,7 +190,7 @@ export const T = {
 
   // Emoji avatars for friends
   avatars: ["😺", "😸", "🐶", "🦊", "🐼", "🐸", "🦄", "🐙", "🐯", "🐵", "🐰", "🐥", "🦁", "🐨", "👻", "🤖"],
-  floatingEmojis: ["⭐", "💖", "🎈", "✨", "🍭", "🎀", "🌈", "🐾"],
+  floatingEmojis: ["⭐", "💖", "🎈", "✨", "🍭", "🐶", "🌈", "🐾", "🐱", "🎀"],
 };
 
 // ---------- Default voice lines (used when the creator did not record their own) ----------
@@ -201,3 +214,24 @@ export const DEFAULT_VOICES: Record<VoiceEvent, DefaultLine[]> = {
 };
 
 export const SPEECH_LANG = "ar-SA";
+
+// ---------- Cute pets that talk (tap a pet to hear it speak in Arabic) ----------
+// Change the dialect / wording freely. Each list rotates every few seconds.
+export const PET_LINES = {
+  home: [
+    "أنت صرت صديقي من اليوم! 🐶",
+    "أنت توأم روحي! 💞",
+    "يلا نلعب سوا! 🎉",
+    "بحبك يا صاحبي! 💖",
+    "مين رح يعرفك أكتر؟ 🤔",
+  ],
+  landing: [
+    "أهلاً صديقي الجديد! 🐾",
+    "أنت الآن صديقي! لا تخذلني 🥺",
+    "جاهز تثبت إنك صاحبي الحقيقي؟ 😎",
+  ],
+  result_high: ["أنت توأم روحي! 😍", "أنت صديقي الحقيقي! 🏆", "عرفتني أكتر من نفسي! 🥳"],
+  result_low: ["ولا يهمك... لسا صديقي! 🥹", "يلا نحاول مرة ثانية! 💪", "أنا بحبك حتى لو ما عرفتني 💕"],
+  share: ["يلا شاركه مع الشلة! 📣", "رح يتحداهم كلهم! 😼", "أنا متحمس! 🐾"],
+  leaderboard: ["مين الأول؟ 🏆", "الصداقة الحقيقية بتبين هون! 💖"],
+};

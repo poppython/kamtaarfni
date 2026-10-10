@@ -2,10 +2,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import Mascot from "@/components/Mascot";
+import PetTrio from "@/components/PetTrio";
 import BigButton from "@/components/BigButton";
 import Screen from "@/components/Screen";
-import { T } from "@/lib/phrases";
+import { PET_LINES, T } from "@/lib/phrases";
 import { getMyQuizzes, MyQuiz } from "@/lib/local";
 
 export default function Home() {
@@ -15,8 +15,8 @@ export default function Home() {
   return (
     <Screen>
       <div className="flex flex-col items-center text-center">
-        <Mascot mood="idle" size={190} />
-        <h1 className="mt-2 font-title text-5xl font-extrabold leading-tight text-grape">{T.appName}</h1>
+        <PetTrio lines={PET_LINES.home} />
+        <h1 className="title-pop mt-4 text-6xl leading-tight">{T.appName}</h1>
         <p className="mt-2 max-w-xs text-lg text-ink/70">{T.tagline}</p>
         <div className="mt-6 w-full max-w-xs"><BigButton href="/create" color="pink">{T.home.start} 🎯</BigButton></div>
       </div>
@@ -40,6 +40,7 @@ export default function Home() {
           </ul>
         )}
       </section>
+      <p className="mt-10 text-center text-xs text-ink/40">v2 🐾</p>
     </Screen>
   );
 }

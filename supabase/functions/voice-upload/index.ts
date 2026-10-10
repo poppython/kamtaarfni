@@ -17,7 +17,9 @@ const json = (body: unknown, status = 200) =>
 const KINDS = ["wrong", "correct", "result_low", "result_high"];
 const MIME_EXT: Record<string, string> = { "audio/webm": "webm", "audio/mp4": "m4a" };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const IMG_EXT: Record<string, string> = { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" };
 const MAX_CLIPS_PER_QUIZ = 40;
+const MAX_STICKERS_PER_QUIZ = 8; // the RPC enforces the real limit (5); this just stops spam uploads
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -58,6 +60,27 @@ Deno.serve(async (req) => {
     const { path } = body;
     if (typeof path !== "string" || !path.startsWith(`${quiz_id}/`) || path.includes("..")) return json({ error: "bad path" }, 400);
     const { error } = await admin.storage.from("voice-clips").remove([path]);
+    if (error) return json({ error: error.message }, 500);
+    return json({ ok: true });
+  }
+
+  // 2c) Sticker (photo) upload URL
+  if (action === "sign_sticker") {
+    const ext = IMG_EXT[body.mime_type];
+    if (!ext) return json({ error: "bad mime type" }, 400);
+    const { count } = await admin.from("stickers").select("id", { count: "exact", head: true }).eq("quiz_id", quiz_id);
+    if ((count ?? 0) >= MAX_STICKERS_PER_QUIZ) return json({ error: "too many stickers" }, 429);
+    const path = `${quiz_id}/${crypto.randomUUID()}.${ext}`;
+    const { data, error } = await admin.storage.from("stickers").createSignedUploadUrl(path);
+    if (error || !data) return json({ error: error?.message ?? "sign failed" }, 500);
+    return json({ path: data.path, token: data.token, signedUrl: data.signedUrl });
+  }
+
+  // 2d) Remove a sticker file (after the RPC delete_sticker returned its path)
+  if (action === "remove_sticker") {
+    const { path } = body;
+    if (typeof path !== "string" || !path.startsWith(`${quiz_id}/`) || path.includes("..")) return json({ error: "bad path" }, 400);
+    const { error } = await admin.storage.from("stickers").remove([path]);
     if (error) return json({ error: error.message }, 500);
     return json({ ok: true });
   }
